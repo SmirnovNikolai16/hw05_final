@@ -8,7 +8,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from ..models import Group, Post, User
+from ..models import Follow, Group, Post, User
 
 
 class ViewsTests(TestCase):
@@ -17,6 +17,8 @@ class ViewsTests(TestCase):
         super().setUpClass()
         settings.MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
         cls.user = User.objects.create_user(username='Mark')
+        cls.user2 = User.objects.create_user(username='Nikolai')
+        cls.user3 = User.objects.create_user(username='Maks')
         cls.group = Group.objects.create(title='reader',
                                          slug='test',
                                          description='Тест')
@@ -43,6 +45,12 @@ class ViewsTests(TestCase):
             'text': forms.fields.CharField,
             'group': forms.fields.ChoiceField,
         }
+
+        cls.data_fields = {
+            'user': cls.user2,
+            'author': cls.user
+        }
+
         cls.templates_url_names = {
             reverse('index'): 'index.html',
             reverse('new_post'): 'new_post.html',
@@ -60,7 +68,11 @@ class ViewsTests(TestCase):
     def setUp(self):
         self.guest_client = Client()
         self.authorized_client = Client()
+        self.authorized_client2 = Client()
+        self.authorized_client3 = Client()
         self.authorized_client.force_login(self.user)
+        self.authorized_client2.force_login(self.user2)
+        self.authorized_client3.force_login(self.user3)
 
     def context_checks(self, response, context):
         first_object = response.context[context][0]
@@ -159,6 +171,45 @@ class ViewsTests(TestCase):
                 context = response.context[value]
                 self.assertEqual(context, expected)
         self.assertEqual(response.context['post'].image, 'posts/small.gif')
+
+    def test_verification_of_subscriptions(self):
+        """Авторизованный пользователь может подписываться на
+        авторов поста и удалять их из подписок.
+        """
+        followings = Follow.objects.all()
+        self.assertEqual(followings.count(), 0)
+        self.authorized_client2.post(
+            reverse('profile_follow', args=[self.user]),
+            data=self.data_fields
+        )
+        self.assertEqual(
+            followings.count(), 1,
+            "Авторизованный пользователь не подписан ни на одного автора"
+        )
+        self.authorized_client2.post(
+            reverse('profile_unfollow', args=[self.user]),
+            data=self.data_fields
+        )
+        self.assertEqual(
+            followings.count(), 0,
+            "Авторизованный пользователь не удалил автора из подписок"
+        )
+
+    def test_post_display_for_subscribers(self):
+        """
+        Новая запись пользователя появляется в ленте тех, кто на него подписан
+        и не появляется в ленте тех, кто не подписан на него
+        """
+        self.authorized_client2.post(
+            reverse('profile_follow', args=[self.user]),
+            data=self.data_fields
+        )
+        response = self.authorized_client2.get(reverse('follow_index'))
+        records_count = len(response.context['page'])
+        self.assertEqual(records_count, 1)
+        response = self.authorized_client3.get(reverse('follow_index'))
+        records_count = len(response.context['page'])
+        self.assertEqual(records_count, 0)
 
 
 class PaginatorViewsTest(TestCase):

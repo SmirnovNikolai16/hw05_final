@@ -10,7 +10,7 @@ from django.urls import reverse
 from ..models import Group, Post, User
 
 
-class PostCreateFormTests(TestCase):
+class CreateFormTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -41,6 +41,12 @@ class PostCreateFormTests(TestCase):
             'text': 'Новый текст',
             'group': cls.group.id,
             'image': cls.uploaded
+        }
+        cls.comment = {
+            'text': 'Комментарий добавлен'
+        }
+        cls.comment2 = {
+            'text': 'Комментарий добавлен гостем'
         }
 
     @classmethod
@@ -83,3 +89,21 @@ class PostCreateFormTests(TestCase):
         posts = Post.objects.filter(author=self.user)
         for post in posts:
             self.assertEqual(post.text, 'Новый текст')
+
+    def test_comment_for_authorized_client(self):
+        """Только авторизированный пользователь может комментировать посты."""
+        self.authorized_client.post(
+            reverse('add_comment', args=[self.user, self.post.id]),
+            data=self.comment
+        )
+        response = self.authorized_client.get(
+            reverse('post', args=[self.user, self.post.id])
+        )
+        comment_count = len(response.context['comments'])
+        self.assertEqual(comment_count, 1)
+        self.guest_client.post(
+            reverse('add_comment', args=[self.user, self.post.id]),
+            data=self.comment2
+        )
+        comment_count = len(response.context['comments'])
+        self.assertEqual(comment_count, 1)
