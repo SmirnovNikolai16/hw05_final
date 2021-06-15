@@ -3,17 +3,17 @@
 {% block header %}Последние обновления на сайте{% endblock %}
 {% block content %}
 
-{% include "menu.html" with index=True %}
+{% include "subpattern/menu.html" with index=True %}
 
 {% load cache %}
 {% cache 20 index_page %}
   <div class="container">
     {% for post in page %}
-      {% include "post_item.html" with post=post %}
+      {% include "post_item.html" %}
     {% endfor %}
   </div>
 
-  {% include "paginator.html" with items=page paginator=paginator%}
+  {% include "subpattern/paginator.html" %}
 {% endcache %}
 
 {% endblock %}

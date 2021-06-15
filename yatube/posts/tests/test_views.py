@@ -163,8 +163,7 @@ class ViewsTests(TestCase):
         response = self.authorized_client.get(
             reverse('post', args=[self.user, self.post.id])
         )
-        fields = {'post_count': self.user.posts.count(),
-                  'author': self.post.author,
+        fields = {'author': self.post.author,
                   'post': self.post}
         for value, expected in fields.items():
             with self.subTest(value=value):
@@ -172,12 +171,11 @@ class ViewsTests(TestCase):
                 self.assertEqual(context, expected)
         self.assertEqual(response.context['post'].image, 'posts/small.gif')
 
-    def test_verification_of_subscriptions(self):
+    def test_author_subscription(self):
         """Авторизованный пользователь может подписываться на
-        авторов поста и удалять их из подписок.
+        авторов поста.
         """
         followings = Follow.objects.all()
-        self.assertEqual(followings.count(), 0)
         self.authorized_client2.post(
             reverse('profile_follow', args=[self.user]),
             data=self.data_fields
@@ -186,6 +184,12 @@ class ViewsTests(TestCase):
             followings.count(), 1,
             "Авторизованный пользователь не подписан ни на одного автора"
         )
+
+    def test_author_unsubscribe(self):
+        """Авторизованный пользователь может удалять
+         авторов поста из подписок.
+        """
+        followings = Follow.objects.all()
         self.authorized_client2.post(
             reverse('profile_unfollow', args=[self.user]),
             data=self.data_fields
@@ -197,8 +201,8 @@ class ViewsTests(TestCase):
 
     def test_post_display_for_subscribers(self):
         """
-        Новая запись пользователя появляется в ленте тех, кто на него подписан
-        и не появляется в ленте тех, кто не подписан на него
+        Новая запись пользователя появляется в ленте тех,
+        кто на него подписан.
         """
         self.authorized_client2.post(
             reverse('profile_follow', args=[self.user]),
@@ -207,6 +211,16 @@ class ViewsTests(TestCase):
         response = self.authorized_client2.get(reverse('follow_index'))
         records_count = len(response.context['page'])
         self.assertEqual(records_count, 1)
+
+    def test_post_display_for_unsubscrib(self):
+        """
+        Новая запись пользователя не появляется в ленте тех,
+        кто не подписан на него.
+        """
+        self.authorized_client2.post(
+            reverse('profile_follow', args=[self.user]),
+            data=self.data_fields
+        )
         response = self.authorized_client3.get(reverse('follow_index'))
         records_count = len(response.context['page'])
         self.assertEqual(records_count, 0)

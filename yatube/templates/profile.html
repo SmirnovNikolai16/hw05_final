@@ -4,14 +4,14 @@
     <div class="row">
       <div class="col-md-3 mb-3 mt-1">
         <div class="card">
-          {% include "block_statistics.html" %}
+          {% include "subpattern/block_statistics.html" %}
           </div>
        </div>
        <div class="col-md-9">
-        {% for post in author_posts %}
-          {% include "post_item.html" with post=post %}
+        {% for post in author.posts.all %}
+          {% include "post_item.html" %}
         {% endfor %}
-          {% include "paginator.html" %}
+          {% include "subpattern/paginator.html" %}
        </div>
     </div>
   </main>

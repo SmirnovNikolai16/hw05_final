@@ -42,11 +42,11 @@ class Comment(models.Model):
     text = models.TextField()
     created = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return self.text
-
     class Meta():
         ordering = ['-created']
+
+    def __str__(self):
+        return self.text
 
 
 class Follow(models.Model):
@@ -57,4 +57,6 @@ class Follow(models.Model):
     subscription_date = models.DateTimeField(auto_now_add=True)
 
     class Meta():
-        ordering = ['-subscription_date']
+        ordering = ['-subscription_date'],
+        models.UniqueConstraint(fields=['user', 'author'],
+                                name='unique_followings')

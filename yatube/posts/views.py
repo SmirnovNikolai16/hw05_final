@@ -15,17 +15,6 @@ def get_page_numbers(request, filter):
     return paginator.get_page(page_number)
 
 
-def get_subscriptions_count(request, author):
-    subscriptions_count = author.follower.count()
-    signed_count = author.following.count()
-    if request.user.is_authenticated:
-        following = Follow.objects.filter(user=request.user,
-                                          author=author).exists()
-    else:
-        following = False
-    return subscriptions_count, signed_count, following
-
-
 @cache_page(20, key_prefix="index_page")
 def index(request):
     post_list = Post.objects.all().order_by('-pub_date')
@@ -44,17 +33,12 @@ def group_posts(request, slug):
 
 def profile(request, username):
     author = get_object_or_404(User, username=username)
-    author_posts = author.posts.all()
-    post_count = author_posts.count()
-    (subscriptions_count, signed_count,
-        following) = get_subscriptions_count(request, author)
-    page = get_page_numbers(request, author_posts)
+    following = request.user.is_authenticated and Follow.objects.filter(
+        user=request.user, author=author
+    ).exists()
+    page = get_page_numbers(request, author.posts.all())
     return render(request, 'profile.html',
                            {"author": author,
-                            "author_posts": author_posts,
-                            "post_count": post_count,
-                            "subscriptions_count": subscriptions_count,
-                            "signed_count": signed_count,
                             "following": following,
                             "page": page
                             })
@@ -62,19 +46,14 @@ def profile(request, username):
 
 def post_view(request, username, post_id):
     post = get_object_or_404(Post, author__username=username, id=post_id)
-    post_count = post.author.posts.count()
-    comments = post.comments.all()
-    (subscriptions_count, signed_count,
-        following) = get_subscriptions_count(request, post.author)
+    following = request.user.is_authenticated and Follow.objects.filter(
+        user=request.user, author=post.author
+    ).exists()
     form = CommentForm()
     return render(request, 'post.html',
                   {"author": post.author,
                    "post": post,
-                   "post_count": post_count,
                    'form': form,
-                   "comments": comments,
-                   "subscriptions_count": subscriptions_count,
-                   "signed_count": signed_count,
                    "following": following,
                    })
 
@@ -140,9 +119,10 @@ def follow_index(request):
 @login_required
 def profile_follow(request, username):
     author = get_object_or_404(User, username=username)
-    follower = Follow.objects.filter(user=request.user, author=author).exists()
-    if not follower and request.user != author:
-        Follow.objects.create(user=request.user, author=author)
+    if author != request.user:
+        follow, created = Follow.objects.get_or_create(
+            user=request.user, author=author
+        )
         return redirect('follow_index')
     return redirect('index')
 
@@ -151,8 +131,7 @@ def profile_follow(request, username):
 def profile_unfollow(request, username):
     user = request.user
     author = get_object_or_404(User, username=username)
-    unfollow = Follow.objects.get(user_id=user.pk, author_id=author.pk)
-    unfollow.delete()
+    get_object_or_404(Follow, user_id=user.pk, author_id=author.pk).delete()
     return redirect('follow_index')
 
 

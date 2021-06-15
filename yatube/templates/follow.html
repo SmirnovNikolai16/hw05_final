@@ -6,10 +6,10 @@
 
   <div class="container">
     {% for post in page %}
-      {% include "post_item.html" with post=post %}
+      {% include "post_item.html" %}
     {% endfor %}
   </div>
 
-  {% include "paginator.html" with items=page paginator=paginator %}
+  {% include "subpattern/paginator.html" with items=page paginator=paginator %}
 
 {% endblock %}

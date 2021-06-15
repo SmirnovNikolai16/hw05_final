@@ -99,11 +99,19 @@ class CreateFormTests(TestCase):
         response = self.authorized_client.get(
             reverse('post', args=[self.user, self.post.id])
         )
-        comment_count = len(response.context['comments'])
+        first_objects = response.context['post']
+        comment_count = first_objects.comments.count()
         self.assertEqual(comment_count, 1)
+
+    def test_comment_for_guest_client(self):
+        """Гость не может комментировать посты."""
         self.guest_client.post(
             reverse('add_comment', args=[self.user, self.post.id]),
             data=self.comment2
         )
-        comment_count = len(response.context['comments'])
-        self.assertEqual(comment_count, 1)
+        response = self.authorized_client.get(
+            reverse('post', args=[self.user, self.post.id])
+        )
+        first_objects = response.context['post']
+        comment_count = first_objects.comments.count()
+        self.assertEqual(comment_count, 0)
