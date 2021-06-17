@@ -175,39 +175,35 @@ class ViewsTests(TestCase):
         """Авторизованный пользователь может подписываться на
         авторов поста.
         """
-        followings = Follow.objects.all()
+        followings = Follow.objects.filter(author__username='Mark').exists()
+        self.assertFalse(followings)
         self.authorized_client2.post(
             reverse('profile_follow', args=[self.user]),
             data=self.data_fields
         )
-        self.assertEqual(
-            followings.count(), 1,
-            "Авторизованный пользователь не подписан ни на одного автора"
-        )
+        followings = Follow.objects.filter(author__username='Mark').exists()
+        self.assertTrue(followings, 'Проверьте подписку на автора')
 
     def test_author_unsubscribe(self):
         """Авторизованный пользователь может удалять
          авторов поста из подписок.
         """
-        followings = Follow.objects.all()
+        Follow.objects.create(user=self.user2, author=self.user)
+        followings = Follow.objects.filter(author__username='Mark').exists()
+        self.assertTrue(followings)
         self.authorized_client2.post(
             reverse('profile_unfollow', args=[self.user]),
             data=self.data_fields
         )
-        self.assertEqual(
-            followings.count(), 0,
-            "Авторизованный пользователь не удалил автора из подписок"
-        )
+        followings = Follow.objects.filter(author__username='Mark').exists()
+        self.assertFalse(followings)
 
     def test_post_display_for_subscribers(self):
         """
         Новая запись пользователя появляется в ленте тех,
         кто на него подписан.
         """
-        self.authorized_client2.post(
-            reverse('profile_follow', args=[self.user]),
-            data=self.data_fields
-        )
+        Follow.objects.create(user=self.user2, author=self.user)
         response = self.authorized_client2.get(reverse('follow_index'))
         records_count = len(response.context['page'])
         self.assertEqual(records_count, 1)
@@ -217,10 +213,7 @@ class ViewsTests(TestCase):
         Новая запись пользователя не появляется в ленте тех,
         кто не подписан на него.
         """
-        self.authorized_client2.post(
-            reverse('profile_follow', args=[self.user]),
-            data=self.data_fields
-        )
+        Follow.objects.create(user=self.user2, author=self.user)
         response = self.authorized_client3.get(reverse('follow_index'))
         records_count = len(response.context['page'])
         self.assertEqual(records_count, 0)
