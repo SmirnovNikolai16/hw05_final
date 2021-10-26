@@ -26,10 +26,9 @@ SECRET_KEY = 'd5&*i994#%m9!aov5n+3jd4t@k$ro5)it9@ufn^ssqudk5*6wc'
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    "localhost",
-    "127.0.0.1",
-    "[::1]",
-    "testserver",
+    '127.0.0.1',
+    'www.smirnovnikolai.pythonanywhere.com',
+    'smirnovnikolai.pythonanywhere.com',
 ]
 
 
@@ -47,6 +46,7 @@ INSTALLED_APPS = [
     'users',
     'about',
     'sorl.thumbnail',
+    'debug_toolbar',
 ]
 
 MIDDLEWARE = [
@@ -57,6 +57,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
 ]
 
 ROOT_URLCONF = 'yatube.urls'
@@ -92,6 +93,9 @@ DATABASES = {
     }
 }
 
+INTERNAL_IPS = [
+    "127.0.0.1",
+]
 
 # Password validation
 # https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators
